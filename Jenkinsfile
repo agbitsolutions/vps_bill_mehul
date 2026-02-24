@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "agbitsolutions/billsoftdevops"
-        NAMESPACE = "billsoftdevops"
+        DOCKERHUB_CREDS = credentials('dockerhub-creds')
     }
 
     stages {
@@ -17,27 +16,32 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def VERSION = "${env.BUILD_NUMBER}"
-                    sh "docker build -t $IMAGE_NAME:$VERSION ."
+                    def VERSION = "${BUILD_NUMBER}"
+
+                    sh """
+                        docker build -t agbitsolutions/billsoftdevops:${VERSION} .
+                    """
+
+                    env.VERSION = VERSION
                 }
             }
         }
 
         stage('Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
-                    sh "docker push $IMAGE_NAME:$VERSION"
-                }
+                sh """
+                    echo ${DOCKERHUB_CREDS_PSW} | docker login -u ${DOCKERHUB_CREDS_USR} --password-stdin
+                    docker push agbitsolutions/billsoftdevops:${VERSION}
+                """
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
                 sh """
-                kubectl set image deployment/billsoftdevops-deployment \
-                billsoftdevops=$IMAGE_NAME:$VERSION \
-                -n $NAMESPACE
+                    kubectl set image deployment/billsoftdevops-deployment \
+                    billsoftdevops=agbitsolutions/billsoftdevops:${VERSION} \
+                    -n billsoftdevops
                 """
             }
         }
