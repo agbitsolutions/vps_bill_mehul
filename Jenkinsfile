@@ -13,25 +13,28 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Frontend Image') {
             steps {
-                script {
-                    def VERSION = "${BUILD_NUMBER}"
-
-                    sh """
-                        docker build -t agbitsolutions/billsoftdevops:${VERSION} .
-                    """
-
-                    env.VERSION = VERSION
-                }
+                sh """
+                    docker build -t agbitsolutions/billsoft-frontend:${BUILD_NUMBER} .
+                """
             }
         }
 
-        stage('Push Image') {
+        stage('Build Backend Image') {
+            steps {
+                sh """
+                    docker build -t agbitsolutions/billsoft-backend:${BUILD_NUMBER} ./billing-saas-app/backend
+                """
+            }
+        }
+
+        stage('Push Images') {
             steps {
                 sh """
                     echo ${DOCKERHUB_CREDS_PSW} | docker login -u ${DOCKERHUB_CREDS_USR} --password-stdin
-                    docker push agbitsolutions/billsoftdevops:${VERSION}
+                    docker push agbitsolutions/billsoft-frontend:${BUILD_NUMBER}
+                    docker push agbitsolutions/billsoft-backend:${BUILD_NUMBER}
                 """
             }
         }
@@ -39,8 +42,12 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh """
+                    kubectl set image deployment/billsoft-backend \
+                    billsoft-backend=agbitsolutions/billsoft-backend:${BUILD_NUMBER} \
+                    -n billsoftdevops
+
                     kubectl set image deployment/billsoftdevops-deployment \
-                    billsoftdevops=agbitsolutions/billsoftdevops:${VERSION} \
+                    billsoftdevops=agbitsolutions/billsoft-frontend:${BUILD_NUMBER} \
                     -n billsoftdevops
                 """
             }
