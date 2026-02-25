@@ -1,0 +1,351 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    text-decoration: none;
+    color: #007bff;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    background: #007bff;
+    color: white;
+    padding: 10px 20px;
+}
+
+.sidebar {
+    background: #343a40;
+    color: white;
+    padding: 15px;
+}
+
+.main-content {
+    padding: 20px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: #0056b3;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.table th,
+.table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.table th {
+    background: #f2f2f2;
+}
+
+.input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.error {
+    color: red;
+    font-size: 0.9em;
+}
+
+/* Logo Upload Component Styles */
+.logo-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 10px;
+    background-color: #f9f9f9;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide ALL layout and navigation elements */
+    .MuiAppBar-root,
+    .MuiDrawer-root,
+    header,
+    nav,
+    aside,
+    .sidebar,
+    [role="navigation"],
+    /* Hide MUI Drawer (Sidebar) */
+    .MuiDrawer-paper,
+    .MuiDrawer-docked,
+    /* Hide buttons and actions */
+    .MuiButton-root,
+    .MuiIconButton-root,
+    .MuiChip-root,
+    /* Hide dialog headers and footers */
+    .MuiDialogTitle-root,
+    .MuiDialogActions-root,
+    /* Other non-printable elements */
+    .no-print {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* CRITICAL: Hide Template Configuration sections globally */
+    h1:has-text("Template Configuration"),
+    h2:has-text("Template Configuration"),
+    h3:has-text("Template Configuration"),
+    h4:has-text("Template Configuration"),
+    h5:has-text("Template Configuration"),
+    h6:has-text("Template Configuration"),
+    div:has-text("Available Fields"),
+    div:has-text("Template Configuration"),
+    *[class*="template-config"],
+    *[class*="available-fields"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+
+    /* Ensure only the dialog content (invoice) is visible */
+    .MuiDialog-root {
+        position: static !important;
+        background: white !important;
+    }
+
+    .MuiDialog-container {
+        position: static !important;
+        height: auto !important;
+    }
+
+    .MuiDialog-paper {
+        position: static !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+    }
+
+    .MuiDialogContent-root {
+        padding: 0 !important;
+        overflow: visible !important;
+        background: white !important;
+        max-height: none !important;
+        height: auto !important;
+        margin: 0 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+
+    .MuiBackdrop-root {
+        display: none !important;
+    }
+
+    /* Target the componentRef container */
+    #printable-invoice {
+        transform-origin: top center;
+        width: 210mm !important;
+        min-height: 297mm !important;
+        margin: 0 auto !important;
+        box-shadow: none !important;
+        background: white !important;
+    }
+
+    /* CRITICAL FIX: Force invoice to start at TOP of page 1 - NO blank first page */
+    .MuiDialogContent-root>div {
+        max-width: 100% !important;
+        width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        /* Prevent page breaks within the invoice */
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        page-break-before: avoid !important;
+        page-break-after: avoid !important;
+        /* Start at very top */
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        /* Fit on ONE page only */
+        max-height: 297mm !important;
+        overflow: hidden !important;
+        /* Small scale to ensure fit */
+        transform: scale(0.90) !important;
+        transform-origin: top center !important;
+    }
+
+    /* Scale down tables and content to fit */
+    .MuiTable-root,
+    .MuiTableContainer-root {
+        max-width: 100% !important;
+        font-size: 10px !important;
+        page-break-inside: auto !important;
+    }
+
+    /* Ensure Paper components fit properly */
+    .MuiPaper-root {
+        box-shadow: none !important;
+        background: white !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        max-height: 297mm !important;
+        overflow: visible !important;
+    }
+
+    /* Force items to stay together if possible */
+    .MuiTableRow-root {
+        page-break-inside: avoid !important;
+    }
+
+    .MuiTableHead-root {
+        page-break-after: avoid !important;
+    }
+
+    /* Typography adjustments for better fit */
+    .MuiTypography-root {
+        page-break-inside: avoid !important;
+    }
+
+    /* Keep natural font sizes for exact alignment */
+    .MuiTypography-h4 {
+        font-size: 1.5rem !important;
+    }
+
+    .MuiTypography-h5 {
+        font-size: 1.25rem !important;
+    }
+
+    .MuiTypography-h6 {
+        font-size: 1rem !important;
+    }
+
+    .MuiTypography-body1 {
+        font-size: 0.875rem !important;
+    }
+
+    .MuiTypography-body2 {
+        font-size: 0.75rem !important;
+    }
+
+    /* Hide the main layout structure - only show invoice content */
+    body>div:first-child {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Ensure invoice preview is visible */
+    [class*="invoice"],
+    [class*="Invoice"],
+    [id*="invoice"],
+    [id*="Invoice"] {
+        visibility: visible !important;
+        display: block !important;
+    }
+
+    /* Auto-scale if content is taller than one page */
+    @supports (height: 100vh) {
+        .MuiDialogContent-root>div>.MuiPaper-root {
+            max-height: 277mm !important;
+            overflow: hidden !important;
+            transform-origin: top center;
+        }
+
+        /* If content is too tall, scale it down */
+        .MuiDialogContent-root>div {
+            max-height: 297mm !important;
+        }
+    }
+
+    /* Remove any extra spacing */
+    * {
+        box-sizing: border-box !important;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        margin-top: 0 !important;
+        margin-bottom: 8px !important;
+    }
+
+    p {
+        margin-top: 0 !important;
+        margin-bottom: 6px !important;
+    }
+
+    /* Reduce divider margins */
+    .MuiDivider-root {
+        margin-top: 8px !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* Preserve natural spacing */
+    .MuiTableCell-root {
+        padding: 8px !important;
+    }
+}

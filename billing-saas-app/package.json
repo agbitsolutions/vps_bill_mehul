@@ -1,0 +1,30 @@
+{
+  "name": "billing-saas-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test --prefix backend && npm run test --prefix frontend",
+    "dev:full": "concurrently \"npm run dev --prefix backend\" \"npm start --prefix frontend\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://agbitsolutions@github.com/agbitsolutions/billsoft_saas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/agbitsolutions/billsoft_saas/issues"
+  },
+  "homepage": "https://github.com/agbitsolutions/billsoft_saas#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.4.1",
+    "dotenv": "^17.3.1",
+    "prisma": "^6.19.2"
+  }
+}

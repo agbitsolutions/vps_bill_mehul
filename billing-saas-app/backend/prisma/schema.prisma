@@ -1,0 +1,650 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Optimization Indexes
+// Bill: Faster lookups by userId and Date
+// Customer: Faster search by name
+
+
+model User {
+  id                    String     @id @default(cuid())
+  email                 String     @unique
+  password              String
+  name                  String?
+  phone                 String?
+  companyName           String?    @map("company_name")
+  logoUrl               String?    @map("logo_url")
+  // Security enhancements
+  twoFactorEnabled      Boolean    @default(false) @map("two_factor_enabled")
+  twoFactorSecret       String?    @map("two_factor_secret")
+  twoFactorBackupCodes  String?    @map("two_factor_backup_codes") // JSON array of backup codes
+  roleId                String?    @map("role_id")
+  isActive              Boolean    @default(true) @map("is_active")
+  lastLoginAt           DateTime?  @map("last_login_at")
+  passwordChangedAt     DateTime?  @map("password_changed_at")
+  passwordExpiresAt     DateTime?  @map("password_expires_at")
+  failedLoginAttempts   Int        @default(0) @map("failed_login_attempts")
+  lockedUntil           DateTime?  @map("locked_until")
+  // OAuth fields
+  googleId              String?    @unique @map("google_id")
+  oauthProvider         String?    @map("oauth_provider")
+  // Plan and feature access
+  planType              PlanType   @default(FREE)
+  planExpiresAt         DateTime?  @map("plan_expires_at")
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  customers        Customer[]
+  products         Product[]
+  bills            Bill[]
+  role             Role?           @relation(fields: [roleId], references: [id])
+  sessions         UserSession[]
+  apiKeys          ApiKey[]
+  securityLogs     SecurityLog[]
+  passwordHistory  PasswordHistory[]
+  settingStates    SettingState[]
+  dynamicFeatureFlags DynamicFeatureFlag[]
+  notifications    Notification[]
+
+  @@map("users")
+}
+
+model Customer {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  name            String
+  email           String?
+  phone           String?
+  address         String?
+  gstNumber       String?   @map("gst_number")
+  // CRM & Loyalty Rewards
+  dob             DateTime? @map("dob") // Date of Birth
+  anniversaryDate DateTime? @map("anniversary_date")
+  loyaltyPoints   Float     @default(0) @map("loyalty_points")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bills Bill[]
+
+  @@index([userId])
+  @@index([name])
+  @@map("customers")
+}
+
+model Product {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  name          String
+  description   String?
+  price         Float
+  taxRate       Float?    @default(0) @map("tax_rate")
+  stock         Int?      @default(0)
+  category      String?
+  sku           String?
+  // Inventory Intelligence & Supplier Management
+  minStockLevel Int?      @default(0) @map("min_stock_level")
+  expiryDate    DateTime? @map("expiry_date")
+  batchNumber   String?   @map("batch_number")
+  supplierId    String?   @map("supplier_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supplier  Supplier?  @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  billItems BillItem[]
+
+  @@index([userId])
+  @@index([name])
+  @@index([stock])
+  @@map("products")
+}
+
+model Bill {
+  id            String        @id @default(cuid())
+  userId        String        @map("user_id")
+  customerId    String        @map("customer_id")
+  billNumber    String        @unique @map("bill_number")
+  customerName  String        @map("customer_name")
+  customerEmail String?       @map("customer_email")
+  status        BillStatus    @default(DRAFT)
+  subtotal      Float
+  taxAmount     Float         @default(0) @map("tax_amount")
+  totalAmount   Float         @map("total_amount")
+  dueDate       DateTime?     @map("due_date")
+  notes         String?
+  templateId    String?       @default("standard") @map("template_id") // Added template support
+  // Payment & Credits (Udhaar) System
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  paidAmount    Float         @default(0) @map("paid_amount")
+  dueAmount     Float?        @map("due_amount")
+  qrCodeUrl     String?       @map("qr_code_url")
+  isWhatsAppSent Boolean      @default(false) @map("is_whatsapp_sent")
+  isNotificationRead Boolean  @default(false) @map("is_notification_read")
+  // Multi-Branch Architecture
+  branchId      String?       @map("branch_id")
+  supplierId    String?       @map("supplier_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  branch   Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  supplier Supplier?  @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  items    BillItem[]
+
+  @@index([userId, createdAt])
+  @@index([userId, customerName])
+  @@index([customerId])
+  @@index([status])
+  @@map("bills")
+}
+
+model BillItem {
+  id          String @id @default(cuid())
+  billId      String @map("bill_id")
+  productId   String @map("product_id")
+  productName String @map("product_name")
+  quantity    Int
+  price       Float
+  total       Float
+  taxId       String? @map("tax_id")
+  taxRate     Float?  @default(0) @map("tax_rate")
+  taxAmount   Float?  @default(0) @map("tax_amount")
+
+  // Relations
+  bill    Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  tax     Tax?    @relation(fields: [taxId], references: [id], onDelete: SetNull)
+
+  @@map("bill_items")
+}
+
+enum BillStatus {
+  DRAFT
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  PENDING
+}
+
+enum PlanType {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum UserRole {
+  ADMIN
+  FINANCE
+  OPERATOR
+  READONLY
+}
+
+enum Permission {
+  BILLING_READ
+  BILLING_WRITE
+  BILLING_DELETE
+  CUSTOMERS_READ
+  CUSTOMERS_WRITE
+  CUSTOMERS_DELETE
+  PRODUCTS_READ
+  PRODUCTS_WRITE
+  PRODUCTS_DELETE
+  REPORTS_READ
+  REPORTS_EXPORT
+  API_READ
+  API_WRITE
+  ADMIN_SETTINGS
+  USER_MANAGEMENT
+}
+
+enum ApiKeyScope {
+  READ_ONLY
+  READ_WRITE
+  ADMIN
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+  PASSWORD_RESET
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  TWO_FACTOR_SUCCESS
+  TWO_FACTOR_FAILED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+  API_KEY_USED
+  ROLE_CHANGED
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  SESSION_CREATED
+  SESSION_TERMINATED
+  PERMISSION_DENIED
+}
+
+// Role-Based Access Control
+model Role {
+  id          String   @id @default(cuid())
+  name        UserRole @unique
+  displayName String   @map("display_name")
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users            User[]
+  rolePermissions  RolePermission[]
+  dynamicFeatureFlags DynamicFeatureFlag[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id         String     @id @default(cuid())
+  roleId     String     @map("role_id")
+  permission Permission
+  canRead    Boolean    @default(false) @map("can_read")
+  canWrite   Boolean    @default(false) @map("can_write")
+  canDelete  Boolean    @default(false) @map("can_delete")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  // Relations
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permission])
+  @@map("role_permissions")
+}
+
+// Session Management
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  sessionId  String    @unique @map("session_id")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  deviceInfo String?   @map("device_info")
+  isActive   Boolean   @default(true) @map("is_active")
+  expiresAt  DateTime  @map("expires_at")
+  lastUsedAt DateTime  @default(now()) @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// API Key Management
+model ApiKey {
+  id          String       @id @default(cuid())
+  userId      String       @map("user_id")
+  name        String
+  keyHash     String       @unique @map("key_hash") // Hashed version of the key
+  keyPrefix   String       @map("key_prefix") // First 8 chars for display
+  scope       ApiKeyScope  @default(READ_ONLY)
+  permissions String?      // JSON array of specific permissions
+  isActive    Boolean      @default(true) @map("is_active")
+  lastUsedAt  DateTime?    @map("last_used_at")
+  expiresAt   DateTime?    @map("expires_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// Security Audit Logging
+model SecurityLog {
+  id          String            @id @default(cuid())
+  userId      String?           @map("user_id")
+  eventType   SecurityEventType @map("event_type")
+  description String
+  ipAddress   String?           @map("ip_address")
+  userAgent   String?           @map("user_agent")
+  metadata    String?           // JSON for additional data
+  success     Boolean           @default(true)
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("security_logs")
+}
+
+// Password History for Policy Enforcement
+model PasswordHistory {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_history")
+}
+
+// Feature Flags for Paid Plan Features
+model FeatureFlag {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  displayName   String   @map("display_name")
+  description   String?
+  isEnabled     Boolean  @default(false) @map("is_enabled")
+  isPaidFeature Boolean  @default(false) @map("is_paid_feature")
+  requiredPlan  PlanType? @map("required_plan")
+  metadata      String?  // JSON for additional configuration
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+// Organization Settings for Admin Panel
+model OrganizationSettings {
+  id                      String   @id @default(cuid())
+  // Invoice Template Settings
+  defaultInvoiceTemplateId String?  @default("standard") @map("default_invoice_template_id") // Added default template
+  // Security Settings
+  twoFactorRequired       Boolean  @default(false) @map("two_factor_required")
+  oauthEnabled            Boolean  @default(false) @map("oauth_enabled")
+  rbacEnabled             Boolean  @default(false) @map("rbac_enabled")
+  apiKeysEnabled          Boolean  @default(false) @map("api_keys_enabled")
+  // Password Policy
+  passwordMinLength       Int      @default(8) @map("password_min_length")
+  passwordRequireUppercase Boolean @default(true) @map("password_require_uppercase")
+  passwordRequireNumbers  Boolean  @default(true) @map("password_require_numbers")
+  passwordRequireSpecial  Boolean  @default(true) @map("password_require_special")
+  passwordExpiryDays      Int?     @map("password_expiry_days")
+  passwordHistoryCount    Int      @default(5) @map("password_history_count")
+  // Session Settings
+  sessionTimeoutMinutes   Int      @default(1440) @map("session_timeout_minutes") // 24 hours default
+  maxConcurrentSessions   Int      @default(5) @map("max_concurrent_sessions")
+  // Security Settings
+  maxFailedAttempts       Int      @default(5) @map("max_failed_attempts")
+  lockoutDurationMinutes  Int      @default(30) @map("lockout_duration_minutes")
+  // Timestamps
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("organization_settings")
+}
+
+// Tax Management
+model Tax {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  displayName   String   @map("display_name")
+  rate          Float    // Tax rate as percentage (e.g., 18.0 for 18%)
+  description   String?
+  type          TaxType  @default(PERCENTAGE)
+  isDefault     Boolean  @default(false) @map("is_default")
+  isActive      Boolean  @default(true) @map("is_active")
+  applicableTo  String?  @map("applicable_to") // JSON array of applicable categories
+  region        String?  // Region/country for the tax
+  metadata      String?  // JSON for additional tax configuration
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  billItems     BillItem[]
+
+  @@map("taxes")
+}
+
+// Global Settings Configuration
+model Settings {
+  id              String      @id @default(cuid())
+  category        String      // e.g., 'invoice', 'billing', 'notification', 'appearance'
+  key             String      // Setting key within category
+  value           String      // JSON value
+  valueType       ValueType   @default(STRING) // Type of the value
+  displayName     String      @map("display_name")
+  description     String?
+  isSystemSetting Boolean     @default(false) @map("is_system_setting")
+  isUserEditable  Boolean     @default(true) @map("is_user_editable")
+  validation      String?     // JSON validation rules
+  defaultValue    String?     @map("default_value")
+  group           String?     // Grouping for UI organization
+  order           Int         @default(0) // Display order
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  settingStates   SettingState[]
+
+  @@unique([category, key])
+  @@map("settings")
+}
+
+// User/Organization-specific Setting Values
+model SettingState {
+  id         String   @id @default(cuid())
+  settingId  String   @map("setting_id")
+  userId     String?  @map("user_id") // If null, it's organization-wide
+  value      String   // JSON value override
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  setting    Settings @relation(fields: [settingId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([settingId, userId])
+  @@map("setting_states")
+}
+
+// Enhanced Feature Flags for Dynamic Bill Management
+model DynamicFeatureFlag {
+  id              String      @id @default(cuid())
+  module          FeatureModule // bills, customers, products, users, roles, settings
+  feature         String      // specific feature name
+  displayName     String      @map("display_name")
+  description     String?
+  isEnabled       Boolean     @default(true) @map("is_enabled")
+  isVisible       Boolean     @default(true) @map("is_visible")
+  isEditable      Boolean     @default(true) @map("is_editable")
+  isRequired      Boolean     @default(false) @map("is_required")
+  order           Int         @default(0) // Display order
+  conditions      String?     // JSON conditions for when this flag applies
+  metadata        String?     // JSON metadata for configuration
+  userId          String?     @map("user_id") // User-specific override
+  roleId          String?     @map("role_id") // Role-specific configuration
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  user            User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role            Role?       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([module, feature, userId])
+  @@unique([module, feature, roleId])
+  @@map("dynamic_feature_flags")
+}
+
+// Enums for Tax and Settings
+enum TaxType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  COMPOUND
+}
+
+enum ValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+  ARRAY
+}
+
+enum FeatureModule {
+  BILLS
+  CUSTOMERS
+  PRODUCTS
+  USERS
+  ROLES
+  SETTINGS
+  DASHBOARD
+  REPORTS
+  TEMPLATES
+}
+
+// Daily Analytics Metrics for Cron Job Aggregation
+model DailyMetric {
+  id            String   @id @default(cuid())
+  date          DateTime @unique @map("date") // YYYY-MM-DD aggregation date
+  revenue       Float    @default(0) // Total revenue from PAID bills
+  billsPaid     Int      @default(0) @map("bills_paid") // Count of bills marked PAID
+  billsOverdue  Int      @default(0) @map("bills_overdue") // Count of bills marked OVERDUE
+  newCustomers  Int      @default(0) @map("new_customers") // New customers created
+  newProducts   Int      @default(0) @map("new_products") // New products created
+  activeUsers   Int      @default(0) @map("active_users") // Users with activity (login, bill creation)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("daily_metrics")
+}
+
+// Cron Job Execution Log for Monitoring
+model CronJobLog {
+  id          String    @id @default(cuid())
+  jobName     String    @map("job_name") // e.g., "markOverdueBills", "aggregateDailyRevenue"
+  status      JobStatus @default(RUNNING)
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  duration    Int?      // Duration in milliseconds
+  recordsProcessed Int? @default(0) @map("records_processed")
+  errorMessage String?  @map("error_message")
+  metadata    String?   // JSON for additional job-specific data
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("cron_job_logs")
+}
+
+enum JobStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+// Supplier Management for Inventory Intelligence
+model Supplier {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  name       String
+  contact    String?
+  email      String?
+  phone      String?
+  address    String?
+  balance    Float     @default(0) // Positive = we owe, Negative = they owe
+  branchId   String?   @map("branch_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  products   Product[]
+  bills      Bill[]
+  branch     Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("suppliers")
+}
+
+// Multi-Branch Architecture
+model Branch {
+  id          String     @id @default(cuid())
+  userId      String     @map("user_id")
+  name        String
+  code        String     @unique // Branch code (e.g., "BR001")
+  address     String?
+  phone       String?
+  email       String?
+  isActive    Boolean    @default(true) @map("is_active")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  bills       Bill[]
+  suppliers   Supplier[]
+
+  @@map("branches")
+}
+
+// Admin Security & Audit Log
+model AuditLog {
+  id         String    @id @default(cuid())
+  userId     String?   @map("user_id")
+  action     String    // CREATE, UPDATE, DELETE
+  entity     String    // bills, customers, products, etc.
+  entityId   String?   @map("entity_id")
+  oldData    String?   @map("old_data") // JSON
+  newData    String?   @map("new_data") // JSON
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  branchId   String?   @map("branch_id")
+  timestamp  DateTime  @default(now())
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
+
+// Expense Tracker for Advanced Reports
+model Expense {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  title         String
+  category      String    // Rent, Utilities, Salaries, Marketing, etc.
+  amount        Float
+  gstAmount     Float?    @default(0) @map("gst_amount")
+  date          DateTime  @default(now())
+  attachmentUrl String?   @map("attachment_url")
+  description   String?
+  branchId      String?   @map("branch_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("expenses")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  message   String
+  type      String   // 'stock_alert', 'bill_created', etc.
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
