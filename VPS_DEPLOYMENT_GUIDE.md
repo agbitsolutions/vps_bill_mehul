@@ -243,7 +243,7 @@ The database is **SQLite** (file: `billing-saas-app/backend/prisma/dev.db`) mana
 
 ## 5. API Endpoints Reference
 
-**Base URL (on VPS):** `https://yourdomain.com/api`
+**Base URL (on VPS):** `https://salonadmin.cloud/api`
 
 | Method | Endpoint | Auth Required | Description |
 |--------|----------|--------------|-------------|
@@ -292,10 +292,10 @@ JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
 SERVER_PORT=5003
 
 # CORS — URL of your frontend (your VPS domain)
-FRONTEND_URL="https://app.yourdomain.com"
+FRONTEND_URL="https://billsoft.salonadmin.cloud"
 
 # API URL — used internally
-REACT_APP_API_URL="https://app.yourdomain.com/api"
+REACT_APP_API_URL="https://billsoft.salonadmin.cloud/api"
 
 # Environment
 NODE_ENV="production"
@@ -399,8 +399,8 @@ cat > /opt/billsoft/billing-saas-app/backend/.env << 'EOF'
 DATABASE_URL="file:prisma/dev.db"
 JWT_SECRET="CHANGE-THIS-TO-A-VERY-LONG-RANDOM-SECRET-STRING-AT-LEAST-64-CHARS"
 SERVER_PORT=5003
-FRONTEND_URL="https://app.yourdomain.com"
-REACT_APP_API_URL="https://app.yourdomain.com/api"
+FRONTEND_URL="https://billsoft.salonadmin.cloud"
+REACT_APP_API_URL="https://billsoft.salonadmin.cloud/api"
 NODE_ENV="production"
 EOF
 
@@ -456,8 +456,8 @@ See Section 10 for the full Nginx configuration.
 ### Step 8 — Enable SSL with Let's Encrypt
 
 ```bash
-# Replace yourdomain.com with your actual domain
-sudo certbot --nginx -d yourdomain.com -d app.yourdomain.com
+# Replace salonadmin.cloud with your actual domain
+sudo certbot --nginx -d salonadmin.cloud -d billsoft.salonadmin.cloud
 
 # Test auto-renewal
 sudo certbot renew --dry-run
@@ -467,13 +467,13 @@ sudo certbot renew --dry-run
 
 ```bash
 # Test backend health
-curl https://app.yourdomain.com/api/health
+curl https://billsoft.salonadmin.cloud/api/health
 
 # Test frontend (should return HTML)
-curl -I https://app.yourdomain.com
+curl -I https://billsoft.salonadmin.cloud
 
 # Test public landing page
-curl -I https://yourdomain.com
+curl -I https://salonadmin.cloud
 ```
 
 ---
@@ -498,7 +498,7 @@ services:
       - DATABASE_URL=file:prisma/dev.db
       - JWT_SECRET=${JWT_SECRET}
       - SERVER_PORT=5003
-      - FRONTEND_URL=${FRONTEND_URL:-https://app.yourdomain.com}
+      - FRONTEND_URL=${FRONTEND_URL:-https://billsoft.salonadmin.cloud}
       - NODE_ENV=production
     volumes:
       # Persist SQLite database file outside container
@@ -562,19 +562,19 @@ networks:
 Create this host Nginx config at `/etc/nginx/sites-available/billsoft`:
 
 ```nginx
-# ─── PUBLIC LANDING PAGE ── yourdomain.com ────────────────────
+# ─── PUBLIC LANDING PAGE ── salonadmin.cloud ────────────────────
 server {
     listen 80;
-    server_name yourdomain.com www.yourdomain.com;
+    server_name salonadmin.cloud www.salonadmin.cloud;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
+    server_name salonadmin.cloud www.salonadmin.cloud;
 
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/salonadmin.cloud/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/salonadmin.cloud/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
@@ -588,19 +588,19 @@ server {
     }
 }
 
-# ─── BILLING SaaS APP ── app.yourdomain.com ───────────────────
+# ─── BILLING SaaS APP ── billsoft.salonadmin.cloud ───────────────────
 server {
     listen 80;
-    server_name app.yourdomain.com;
+    server_name billsoft.salonadmin.cloud;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name app.yourdomain.com;
+    server_name billsoft.salonadmin.cloud;
 
-    ssl_certificate /etc/letsencrypt/live/app.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.yourdomain.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/billsoft.salonadmin.cloud/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/billsoft.salonadmin.cloud/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
@@ -612,7 +612,7 @@ server {
 
     # Frontend React App
     location / {
-        proxy_pass http://localhost:3001;
+        proxy_pass http://localhost:3003;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -708,8 +708,8 @@ ls -lh /opt/backups/
 
 | Service | Container Port | Host Port | Accessed Via |
 |---------|---------------|-----------|-------------|
-| Public Landing Page (Nginx) | 80 | 8080 | `https://yourdomain.com` (via host Nginx) |
-| Frontend React App (Nginx) | 80 | 3001 | `https://app.yourdomain.com` (via host Nginx) |
+| Public Landing Page (Nginx) | 80 | 8080 | `https://salonadmin.cloud` (via host Nginx) |
+| Frontend React App (Nginx) | 80 | 3001 | `https://billsoft.salonadmin.cloud` (via host Nginx) |
 | Backend API (Express) | 5003 | 5003 | Internal only via Docker network + frontend proxy |
 | Host Nginx HTTP | — | 80 | Redirects to HTTPS |
 | Host Nginx HTTPS | — | 443 | Public internet |
@@ -717,9 +717,9 @@ ls -lh /opt/backups/
 ### Internal Docker Network Flow
 
 ```
-Browser Request: https://app.yourdomain.com/api/bills
+Browser Request: https://billsoft.salonadmin.cloud/api/bills
   → Host Nginx (:443) 
-  → Forward to localhost:3001
+  → Forward to localhost:3003
   → Frontend Nginx container
   → proxy_pass http://backend:5003/api/bills
   → Backend Express container
@@ -852,11 +852,11 @@ docker stats  # Live CPU / Memory usage
 
 ```bash
 # Backend health
-curl https://app.yourdomain.com/api/health
+curl https://billsoft.salonadmin.cloud/api/health
 # Expected: {"status":"OK","message":"BillSoft API Server is running"}
 
 # Nginx (frontend)
-curl -I https://app.yourdomain.com
+curl -I https://billsoft.salonadmin.cloud
 # Expected: HTTP/2 200
 ```
 
@@ -950,7 +950,7 @@ docker compose -f docker-compose.prod.yml ps
 sudo tail -20 /var/log/nginx/error.log
 
 # Test direct connection to frontend container
-curl http://localhost:3001
+curl http://localhost:3003
 ```
 
 ### ❌ Database / Prisma error on startup
@@ -1032,8 +1032,8 @@ docker volume ls                                        # List volumes (DO NOT d
 
 | What | Where it Runs | Port | URL |
 |------|--------------|------|-----|
-| Public Landing Page | Docker container (Nginx) | Host: 8080 | `https://yourdomain.com` |
-| React SaaS App (Frontend) | Docker container (Nginx) | Host: 3001 | `https://app.yourdomain.com` |
+| Public Landing Page | Docker container (Nginx) | Host: 8080 | `https://salonadmin.cloud` |
+| React SaaS App (Frontend) | Docker container (Nginx) | Host: 3001 | `https://billsoft.salonadmin.cloud` |
 | Express.js API (Backend) | Docker container (Node.js) | Host: 5003 | Internal only |
 | SQLite Database | Docker named volume | File | `billsoft_db` volume |
 | Host Nginx (Reverse Proxy) | VPS host machine | 80 / 443 | Routes all traffic |

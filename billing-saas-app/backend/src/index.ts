@@ -26,6 +26,7 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:5003',
   'https://billsoft-web.netlify.app',
+  'https://billsoft.salonadmin.cloud',
   process.env.FRONTEND_URL
 ].filter(Boolean) as string[];
 
