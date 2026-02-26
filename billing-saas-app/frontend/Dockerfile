@@ -3,7 +3,7 @@ FROM node:18-alpine AS build
 WORKDIR /app
 # Remove package-lock.json to avoid sync issues for now if needed, or keep it.
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 COPY . .
 RUN npm run build
 

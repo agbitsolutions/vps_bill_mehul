@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      context: ./billing-saas-app/backend
+      dockerfile: Dockerfile
+    container_name: billsoft_backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=file:prisma/dev.db
+      - SERVER_PORT=5003
+      - NODE_ENV=production
+    volumes:
+      - billsoft_db:/app/prisma
+    ports:
+      - "5003:5003"
+    networks:
+      - billsoft_net
+
+  frontend:
+    build:
+      context: ./billing-saas-app/frontend
+      dockerfile: Dockerfile
+    container_name: billsoft_frontend
+    restart: unless-stopped
+    ports:
+      - "3003:80"
+    depends_on:
+      - backend
+    networks:
+      - billsoft_net
+
+volumes:
+  billsoft_db:
+    driver: local
+
+networks:
+  billsoft_net:
+    driver: bridge
