@@ -61,7 +61,7 @@
                         │  ┌─────────────┐ │
                         │  │  Backend    │ │
                         │  │  Express.js │ │
-                        │  │  Port 5001  │ │
+                        │  │  Port 5003  │ │
                         │  └──────┬──────┘ │
                         │         │        │
                         │         ▼        │
@@ -79,7 +79,7 @@
 |------|-----|----------|-----|
 | Browser | Nginx (VPS) | HTTPS :443 | SSL/TLS |
 | Nginx | Frontend Container | HTTP :80 | Docker network |
-| Frontend Nginx | Backend API | HTTP :5001 | proxy_pass /api/ |
+| Frontend Nginx | Backend API | HTTP :5003 | proxy_pass /api/ |
 | Backend | SQLite DB | File I/O | Prisma ORM |
 
 ---
@@ -90,7 +90,7 @@
 BillTech/                          ← ROOT PROJECT FOLDER
 ├── Dockerfile                      ← Builds the PUBLIC landing page (Vite)
 ├── Jenkinsfile                     ← CI/CD pipeline definition
-├── vite.config.js                  ← Vite config (public site, port 3000 dev)
+├── vite.config.js                  ← Vite config (public site, port 3003 dev)
 ├── package.json                    ← Root scripts (dev, build, preview)
 ├── index.html                      ← Landing page HTML
 ├── main.js                         ← Landing page JS entry point
@@ -289,7 +289,7 @@ DATABASE_URL="file:prisma/dev.db"
 JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
 
 # Server Port — backend listens on this port
-SERVER_PORT=5001
+SERVER_PORT=5003
 
 # CORS — URL of your frontend (your VPS domain)
 FRONTEND_URL="https://app.yourdomain.com"
@@ -305,7 +305,7 @@ NODE_ENV="production"
 
 ```env
 # Port for local dev only (not used in Docker)
-PORT=3000
+PORT=3003
 
 # API URL — this is what React code calls
 # Must be /api (relative) so Nginx proxy works
@@ -398,7 +398,7 @@ ls -la
 cat > /opt/billsoft/billing-saas-app/backend/.env << 'EOF'
 DATABASE_URL="file:prisma/dev.db"
 JWT_SECRET="CHANGE-THIS-TO-A-VERY-LONG-RANDOM-SECRET-STRING-AT-LEAST-64-CHARS"
-SERVER_PORT=5001
+SERVER_PORT=5003
 FRONTEND_URL="https://app.yourdomain.com"
 REACT_APP_API_URL="https://app.yourdomain.com/api"
 NODE_ENV="production"
@@ -406,7 +406,7 @@ EOF
 
 # ── Frontend .env ─────────────────────────────────────────
 cat > /opt/billsoft/billing-saas-app/frontend/.env << 'EOF'
-PORT=3000
+PORT=3003
 REACT_APP_API_URL=/api
 NODE_ENV=production
 EOF
@@ -497,18 +497,18 @@ services:
     environment:
       - DATABASE_URL=file:prisma/dev.db
       - JWT_SECRET=${JWT_SECRET}
-      - SERVER_PORT=5001
+      - SERVER_PORT=5003
       - FRONTEND_URL=${FRONTEND_URL:-https://app.yourdomain.com}
       - NODE_ENV=production
     volumes:
       # Persist SQLite database file outside container
       - billsoft_db:/app/prisma
     ports:
-      - "5001:5001"
+      - "5003:5003"
     networks:
       - billsoft_net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5001/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5003/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -625,7 +625,7 @@ server {
 
     # Direct Backend API (if needed to access directly)
     location /direct-api/ {
-        proxy_pass http://localhost:5001/api/;
+        proxy_pass http://localhost:5003/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -710,7 +710,7 @@ ls -lh /opt/backups/
 |---------|---------------|-----------|-------------|
 | Public Landing Page (Nginx) | 80 | 8080 | `https://yourdomain.com` (via host Nginx) |
 | Frontend React App (Nginx) | 80 | 3001 | `https://app.yourdomain.com` (via host Nginx) |
-| Backend API (Express) | 5001 | 5001 | Internal only via Docker network + frontend proxy |
+| Backend API (Express) | 5003 | 5003 | Internal only via Docker network + frontend proxy |
 | Host Nginx HTTP | — | 80 | Redirects to HTTPS |
 | Host Nginx HTTPS | — | 443 | Public internet |
 
@@ -721,7 +721,7 @@ Browser Request: https://app.yourdomain.com/api/bills
   → Host Nginx (:443) 
   → Forward to localhost:3001
   → Frontend Nginx container
-  → proxy_pass http://backend:5001/api/bills
+  → proxy_pass http://backend:5003/api/bills
   → Backend Express container
   → Prisma ORM
   → SQLite dev.db file (in volume)
@@ -815,7 +815,7 @@ Before going live, verify all of these:
 - [ ] **SSL/HTTPS** is configured with Let's Encrypt certificates
 - [ ] **Nginx security headers** are set (X-Frame-Options, X-Content-Type-Options, etc.)
 - [ ] **Database file** (`dev.db`) is stored in a Docker volume (not in the container)
-- [ ] **Backend port 5001** is NOT exposed to the internet (only via internal Docker network)
+- [ ] **Backend port 5003** is NOT exposed to the internet (only via internal Docker network)
 - [ ] **Regular automated backups** of the SQLite database are scheduled
 - [ ] **Node.js version** 20 LTS is used (not older EOL versions)
 - [ ] **`NODE_ENV=production`** is set in all `.env` files
@@ -930,13 +930,13 @@ docker compose -f docker-compose.prod.yml logs backend --tail=50
 
 ```bash
 # Check if backend is healthy
-curl http://localhost:5001/api/health
+curl http://localhost:5003/api/health
 
 # Check frontend nginx config — is proxy_pass pointing to correct backend name?
 docker compose -f docker-compose.prod.yml exec frontend cat /etc/nginx/conf.d/default.conf
 
 # Make sure backend container name matches nginx.conf proxy_pass
-# nginx.conf: proxy_pass http://backend:5001/api/
+# nginx.conf: proxy_pass http://backend:5003/api/
 # docker-compose: container_name: billsoft_backend  ← this must be "backend" in the Docker network
 ```
 
@@ -1034,7 +1034,7 @@ docker volume ls                                        # List volumes (DO NOT d
 |------|--------------|------|-----|
 | Public Landing Page | Docker container (Nginx) | Host: 8080 | `https://yourdomain.com` |
 | React SaaS App (Frontend) | Docker container (Nginx) | Host: 3001 | `https://app.yourdomain.com` |
-| Express.js API (Backend) | Docker container (Node.js) | Host: 5001 | Internal only |
+| Express.js API (Backend) | Docker container (Node.js) | Host: 5003 | Internal only |
 | SQLite Database | Docker named volume | File | `billsoft_db` volume |
 | Host Nginx (Reverse Proxy) | VPS host machine | 80 / 443 | Routes all traffic |
 | Jenkins CI/CD (Optional) | VPS host machine | 8090 | `http://VPS_IP:8090` |

@@ -285,7 +285,7 @@ router.post('/', authenticateUser, async (req: any, res) => {
     // 10. Fire-and-forget WhatsApp (Non-blocking for "Instant" feel)
     const bill: any = result.bill;
     if (bill.customer?.phone) {
-      const appUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const appUrl = process.env.FRONTEND_URL || 'http://localhost:3003';
       autoSendInvoice(
         bill.id,
         bill.customer.phone,

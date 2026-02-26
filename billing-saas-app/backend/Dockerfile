@@ -21,7 +21,7 @@ RUN npx prisma generate
 COPY . .
 
 # Backend runs on 5000
-EXPOSE 5000
+EXPOSE 5003
 
 # Production start
 CMD ["npx", "tsx", "src/index.ts"]

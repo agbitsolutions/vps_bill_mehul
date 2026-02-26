@@ -17,14 +17,14 @@ dotenv.config({ path: '.env.local', override: true })
 
 
 const app = express()
-const PORT: number = Number(process.env.SERVER_PORT) || 5000
+const PORT: number = Number(process.env.SERVER_PORT) || 5003
 
 
 // Enable CORS for all environments
 const allowedOrigins = [
-  'http://localhost:3000',
+  'http://localhost:3003',
   'http://localhost:3001',
-  'http://localhost:5001',
+  'http://localhost:5003',
   'https://billsoft-web.netlify.app',
   process.env.FRONTEND_URL
 ].filter(Boolean) as string[];

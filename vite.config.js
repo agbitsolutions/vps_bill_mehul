@@ -4,7 +4,7 @@ export default defineConfig({
     root: './',
     publicDir: 'public',
     server: {
-        port: 3000,
+        port: 3003,
         open: true
     }
 });
